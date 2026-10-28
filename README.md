@@ -4,7 +4,7 @@
 
 PlayPane is an open-source, native macOS app intended to turn a MacBook into a display for a game console using a USB HDMI capture card. Built with SwiftUI and AVFoundation, it aims to provide a focused, lightweight alternative to opening OBS just to play.
 
-> **Status: pre-alpha / not yet implemented.** There is no playable build or download yet. PlayStation 5 is the first validation target; Xbox, Switch, and additional capture cards are *not yet tested*. Performance claims will be published only after hardware measurements.
+> **Status: pre-alpha / partial CaptureStage implementation.** The local SwiftUI app builds and launches, detects the attached USB video device, and presents contextual camera-access guidance. Actual PS5 gameplay, physical unplug/replug recovery, audio, and latency are not yet verified. There is no published release/download. Xbox, Switch, and other capture cards remain untested.
 
 ## The idea
 
@@ -44,7 +44,28 @@ A capture card imposes its own limits. A 30 fps device cannot become 60 fps thro
 - **Video baseline:** Start with `AVCaptureVideoPreviewLayer` in a native view; profile before investing in custom Metal rendering
 - **Audio:** AVFoundation / macOS audio APIs, validated on real capture hardware
 
-There is not yet an Xcode project. The first implementation milestone is [a running Mac app that displays the PS5 feed](https://github.com/blakee-marcus/PlayPane/issues). See [contributing](CONTRIBUTING.md), [validation approach](docs/VALIDATION.md), and [engineering guidance](AGENTS.md).
+The repository includes `PlayPane.xcodeproj` with a shared `PlayPane` scheme and a dependency-free SwiftPM executable. Minimum target: macOS 14; source compiles in Swift 6 mode.
+
+```bash
+# Controlled-input state assertions plus a warnings-as-errors app build
+bash scripts/test.sh
+
+# Build an ad-hoc-signed local development app with camera purpose metadata
+bash scripts/build-app.sh
+open .build/PlayPane.app
+```
+
+The Command Line Tools route was exercised. Full Xcode is not installed on the development Mac, so an Xcode build remains unverified. With Xcode installed, open `PlayPane.xcodeproj` and run the `PlayPane` scheme, or use:
+
+```bash
+xcodebuild -project PlayPane.xcodeproj -scheme PlayPane -configuration Debug build
+```
+
+The shared scheme builds/runs the application; it does not yet contain an XCTest target. This Mac's Command Line Tools do not provide `XCTest` or `Testing`, so `scripts/test.sh` compiles and executes standalone assertions against the production state model instead of claiming `swift test` support. These checks do not validate capture hardware.
+
+The local app will ask you to continue to the native camera permission prompt. Granting permission is your choice. After permission, choose **Connect** or select the USB device from the Device menu. This milestone has no game audio. Received frames do not prove a valid HDMI signal: some cards generate their own no-signal image.
+
+See [CaptureStage evidence](docs/CAPTURE_STAGE_VALIDATION.md), [contributing](CONTRIBUTING.md), [validation approach](docs/VALIDATION.md), and [engineering guidance](AGENTS.md).
 
 ## Roadmap
 
