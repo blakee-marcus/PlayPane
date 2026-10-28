@@ -1,0 +1,52 @@
+name: Capture or playback bug
+description: Report a reproducible video, audio, device, permission, or stability issue
+title: "[Bug] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include the observed result and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Connect...
+        2. Launch...
+        3. Select...
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model, chip, and macOS version
+      placeholder: "MacBook Air M4, macOS ..."
+    validations:
+      required: true
+  - type: input
+    id: card
+    attributes:
+      label: Capture card and connection
+      placeholder: "Make/model, USB port or hub, USB VID:PID if known"
+    validations:
+      required: true
+  - type: input
+    id: format
+    attributes:
+      label: Console and capture format
+      placeholder: "PS5 1080p60 output; capture device 1080p30 (if known)"
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, screenshots, or measurements
+      description: Remove personal data and device identifiers not needed to reproduce the issue.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Basic checks
+      options:
+        - label: I checked that the capture card works in another viewer (if available).
+        - label: I checked HDMI/HDCP and device permissions where relevant.
