@@ -1,13 +1,25 @@
 import SwiftUI
 
+@MainActor
+final class CaptureStagePresentation: ObservableObject {
+    @Published var controlsRequested = false
+    @Published var showConnectionHelp = false
+
+    func controlsVisible(isPlaying: Bool, audioNeedsAttention: Bool) -> Bool {
+        controlsRequested || !isPlaying || audioNeedsAttention
+    }
+}
+
 struct CaptureStageView: View {
     @ObservedObject var coordinator: CaptureCoordinator
-    @State private var showHelp = false
+    @ObservedObject var audio: GameAudioCoordinator
+    @ObservedObject var presentation: CaptureStagePresentation
 
     var body: some View {
         ZStack {
             Color.black
             CapturePreviewView(session: coordinator.session)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(coordinator.state.isPlaying ? 1 : 0)
                 .accessibilityHidden(!coordinator.state.isPlaying)
             if !coordinator.state.isPlaying {
@@ -17,7 +29,7 @@ struct CaptureStageView: View {
                     Text(detail).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     if case .connecting = coordinator.state { ProgressView().controlSize(.small) }
                     action
-                    Button("Connection Help") { showHelp = true }
+                    Button("Connection Help") { presentation.showConnectionHelp = true }
                 }
                 .padding(28)
                 .frame(maxWidth: 480)
@@ -26,26 +38,41 @@ struct CaptureStageView: View {
             }
         }
         .toolbar {
-            ToolbarItem {
-                Picker("Capture device", selection: Binding(get: { coordinator.selectedID }, set: { coordinator.connect(to: $0) })) {
-                    if coordinator.devices.isEmpty { Text("No capture device").tag("") }
-                    ForEach(coordinator.devices) { device in Text(device.name).tag(device.id) }
+            if presentation.controlsVisible(isPlaying: coordinator.state.isPlaying, audioNeedsAttention: audio.needsAttention) {
+                ToolbarItem {
+                    Picker("Capture device", selection: Binding(get: { coordinator.selectedID }, set: { coordinator.connect(to: $0) })) {
+                        if coordinator.devices.isEmpty { Text("No capture device").tag("") }
+                        ForEach(coordinator.devices) { device in Text(device.name).tag(device.id) }
+                    }
+                    .disabled(coordinator.devices.isEmpty)
+                    .help("Choose an external USB video capture device")
                 }
-                .disabled(coordinator.devices.isEmpty)
-                .help("Choose an external USB video capture device")
+                ToolbarItem {
+                    Button { audio.showHelp = true } label: {
+                        HStack {
+                            Image(systemName: audio.needsAttention ? "exclamationmark.triangle" : (audio.model.isMuted ? "speaker.slash" : "speaker.wave.2"))
+                            if audio.needsAttention { Text("Audio needs attention").font(.caption) }
+                        }
+                    }
+                    .accessibilityLabel("Audio: \(audio.statusText)")
+                    .help(audio.statusText)
+                }
+                ToolbarItem { Button("Connection Help", systemImage: "questionmark.circle") { presentation.showConnectionHelp = true } }
             }
-            ToolbarItem { Button("Connection Help", systemImage: "questionmark.circle") { showHelp = true } }
         }
         .task { coordinator.bootstrap() }
-        .sheet(isPresented: $showHelp) {
+        .onChange(of: coordinator.model.selectedID, initial: true) { _, id in audio.followVideo(id) }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in audio.stop() }
+        .sheet(isPresented: $audio.showHelp) { GameAudioHelpView(audio: audio) }
+        .sheet(isPresented: $presentation.showConnectionHelp) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Connect your console").font(.title2)
                 Text("Connect PS5 HDMI output to the capture card's HDMI input, then connect USB to the Mac. Select the USB capture device from the Device menu.")
                 Text("For blocked gameplay capture, check PS5 Settings → System → HDMI → Enable HDCP. Protected media may not be capturable.")
                 Text("Frames indicate device output, not verified HDMI signal. Some cards produce black, blue, or no-signal images when HDMI is absent.").foregroundStyle(.secondary)
                 if !coordinator.frameDescription.isEmpty { Text(coordinator.frameDescription).font(.body.monospaced()) }
-                Text("Game audio is not implemented in this milestone.").foregroundStyle(.secondary)
-                Button("Done") { showHelp = false }.keyboardShortcut(.defaultAction)
+                Text("For capture-card audio, use Audio → Start Game Audio. Microphone access is requested separately.").foregroundStyle(.secondary)
+                Button("Done") { presentation.showConnectionHelp = false }.keyboardShortcut(.defaultAction)
             }.padding(24).frame(width: 460)
         }
     }

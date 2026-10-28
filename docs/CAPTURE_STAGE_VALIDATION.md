@@ -1,5 +1,7 @@
 # CaptureStage validation record
 
+> **Historical first-milestone snapshot.** Later work observed real moving PS5 imagery and native fullscreen, with user-confirmed synchronized audio. See [fullscreen validation](FULLSCREEN_VALIDATION.md) for current evidence and remaining limits. The original table below is retained as the initial permission-gated record, not a claim that playback is still unobserved.
+
 ## Scope and current status
 
 This milestone covers native windowing, external capture-device selection, camera authorization, video preview, and basic failure/recovery. Game audio, recording, streaming, advanced format controls, custom fullscreen controls, and an end-to-end latency benchmark are excluded.
